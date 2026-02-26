@@ -1,0 +1,22 @@
+server:
+  port: 3000
+
+github:
+  webhookSecret: "your-github-webhook-secret"
+
+feishu:
+  appId: "cli_xxxxx"
+  appSecret: "xxxxx"
+
+userMapping:
+  # github_username: feishu_open_id
+  octocat: "ou_xxxx"
+  dev-alice: "ou_yyyy"
+
+routes:
+  - repo: "org/repo-a"
+    subscribers: ["octocat", "dev-alice"]
+    events: ["issues", "issue_comment", "pull_request", "pull_request_review", "push"]
+  - repo: "org/repo-b"
+    subscribers: ["octocat"]
+    # omit events to subscribe to all
