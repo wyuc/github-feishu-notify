@@ -16,7 +16,8 @@ userMapping:
 routes:
   - repo: "org/repo-a"
     subscribers: ["octocat", "dev-alice"]
-    events: ["issues", "issue_comment", "pull_request", "pull_request_review", "push"]
+    events: ["discussion", "discussion_comment", "issues", "issue_comment", "pull_request", "pull_request_review", "push", "workflow_run"]
+    branches: ["main"]  # only notify push on main branch; omit to receive all branches
   - repo: "org/repo-b"
     subscribers: ["octocat"]
     # omit events to subscribe to all

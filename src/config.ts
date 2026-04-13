@@ -5,6 +5,7 @@ interface RouteConfig {
   repo: string;
   subscribers: string[];
   events?: string[];
+  branches?: string[];
 }
 
 interface Config {
@@ -16,11 +17,14 @@ interface Config {
 }
 
 const DEFAULT_EVENTS = [
+  "discussion",
+  "discussion_comment",
   "issues",
   "issue_comment",
   "pull_request",
   "pull_request_review",
   "push",
+  "workflow_run",
 ];
 
 function loadConfig(): Config {

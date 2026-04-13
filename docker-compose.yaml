@@ -2,9 +2,19 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "6789:6789"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  app2:
+    build: .
+    ports:
+      - "6790:6790"
+    volumes:
+      - ./config2.yaml:/app/config.yaml:ro
     environment:
       - NODE_ENV=production
     restart: unless-stopped

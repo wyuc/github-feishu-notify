@@ -11,12 +11,17 @@ type CardColor =
 interface CardParams {
   color: CardColor;
   title: string;
+  repoName?: string;
   fields: { label: string; value: string }[];
   body?: string;
   url?: string;
 }
 
-export function buildCard({ color, title, fields, body, url }: CardParams) {
+function formatTitle(repoName: string | undefined, title: string) {
+  return repoName ? `【${repoName}】 ${title}` : title;
+}
+
+export function buildCard({ color, title, repoName, fields, body, url }: CardParams) {
   const elements: any[] = [];
 
   if (fields.length > 0) {
@@ -58,7 +63,7 @@ export function buildCard({ color, title, fields, body, url }: CardParams) {
     config: { wide_screen_mode: true },
     header: {
       template: color,
-      title: { content: title, tag: "plain_text" },
+      title: { content: formatTitle(repoName, title), tag: "plain_text" },
     },
     elements,
   };

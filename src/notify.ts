@@ -1,19 +1,35 @@
 import { config } from "./config.js";
 import { sendCardToUser } from "./feishu/sender.js";
+import { handleDiscussion } from "./handlers/discussion.js";
+import { handleDiscussionComment } from "./handlers/discussion-comment.js";
 import { handleIssues } from "./handlers/issues.js";
 import { handleIssueComment } from "./handlers/issue-comment.js";
 import { handlePullRequest } from "./handlers/pull-request.js";
 import { handlePrReview } from "./handlers/pr-review.js";
 import { handlePush } from "./handlers/push.js";
+import { handleWorkflowRun } from "./handlers/workflow-run.js";
+import { extractPushBranch, routeMatches } from "./route-match.js";
+import { buildMentionElement, extractMentionsFromBody } from "./mentions.js";
 
-type Handler = (payload: any) => ReturnType<typeof handleIssues>;
+export interface HandlerResult {
+  card: Record<string, unknown>;
+  /** GitHub usernames this event is related to (for @mention in Feishu) */
+  mentions?: string[];
+  /** The GitHub username who triggered this event (won't be @mentioned) */
+  sender?: string;
+}
+
+type Handler = (payload: any) => HandlerResult | null;
 
 const handlers: Record<string, Handler> = {
+  discussion: handleDiscussion,
+  discussion_comment: handleDiscussionComment,
   issues: handleIssues,
   issue_comment: handleIssueComment,
   pull_request: handlePullRequest,
   pull_request_review: handlePrReview,
   push: handlePush,
+  workflow_run: handleWorkflowRun,
 };
 
 export async function handleEvent(
@@ -29,19 +45,44 @@ export async function handleEvent(
   const repo = payload.repository?.full_name;
   if (!repo) return;
 
+  const branch = event === "push" ? extractPushBranch(payload.ref) : undefined;
+
   const matchedRoutes = config.routes.filter(
-    (r) => r.repo === repo && (!r.events || r.events.includes(event))
+    (r) => routeMatches(r, repo, event, branch)
   );
 
   if (matchedRoutes.length === 0) {
-    console.log(`No routes matched for ${event} on ${repo}`);
+    const branchSuffix =
+      event === "push" ? ` (branch=${branch ?? payload.ref ?? "unknown"})` : "";
+    console.log(`No routes matched for ${event} on ${repo}${branchSuffix}`);
     return;
   }
 
-  const card = handler(payload);
-  if (!card) {
+  const result = handler(payload);
+  if (!result) {
     console.log(`Handler returned null for ${event} action=${payload.action}`);
     return;
+  }
+
+  const { card, mentions, sender } = result;
+
+  // Inject @mention element into card if there are related users
+  if (mentions && mentions.length > 0) {
+    const mentionEl = buildMentionElement(mentions, sender);
+    if (mentionEl && card.elements && Array.isArray(card.elements)) {
+      // Insert before the last element (usually the "查看详情" button)
+      // Find the hr+action block at the end
+      const elements = card.elements as any[];
+      let hrIndex = -1;
+      for (let i = elements.length - 1; i >= 0; i--) {
+        if (elements[i].tag === "hr") { hrIndex = i; break; }
+      }
+      if (hrIndex > 0) {
+        elements.splice(hrIndex, 0, mentionEl);
+      } else {
+        elements.push(mentionEl);
+      }
+    }
   }
 
   const subscriberSet = new Set<string>();

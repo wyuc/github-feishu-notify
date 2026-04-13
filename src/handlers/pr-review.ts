@@ -1,4 +1,5 @@
 import { buildCard } from "../feishu/card.js";
+import type { HandlerResult } from "../notify.js";
 
 const STATE_LABELS: Record<string, string> = {
   approved: "✅ Approved",
@@ -6,25 +7,38 @@ const STATE_LABELS: Record<string, string> = {
   commented: "💬 Commented",
 };
 
-export function handlePrReview(payload: any) {
+export function handlePrReview(payload: any): HandlerResult | null {
   if (payload.action !== "submitted") return null;
 
   const review = payload.review;
   const pr = payload.pull_request;
-  const repo = payload.repository.full_name;
+  const repo = payload.repository;
   const state = review.state?.toLowerCase();
   const stateLabel = STATE_LABELS[state] || state;
 
-  return buildCard({
-    color: state === "approved" ? "green" : state === "changes_requested" ? "red" : "yellow",
-    title: `PR Review: ${pr.title}`,
-    fields: [
-      { label: "Repo", value: repo },
-      { label: "Reviewer", value: `@${review.user.login}` },
-      { label: "Result", value: stateLabel },
-      { label: "#", value: `#${pr.number}` },
-    ],
-    body: review.body || undefined,
-    url: review.html_url,
-  });
+  const mentions = new Set<string>();
+
+  // PR author (they should be notified of the review)
+  if (pr.user?.login) mentions.add(pr.user.login);
+
+  // Reviewer
+  if (review.user?.login) mentions.add(review.user.login);
+
+  return {
+    card: buildCard({
+      color: state === "approved" ? "green" : state === "changes_requested" ? "red" : "yellow",
+      title: `PR Review: ${pr.title}`,
+      repoName: repo.name || repo.full_name,
+      fields: [
+        { label: "Repo", value: `[${repo.full_name}](${repo.html_url})` },
+        { label: "Reviewer", value: `@${review.user.login}` },
+        { label: "Result", value: stateLabel },
+        { label: "#", value: `[#${pr.number}](${pr.html_url})` },
+      ],
+      body: review.body || undefined,
+      url: review.html_url,
+    }),
+    mentions: [...mentions],
+    sender: review.user?.login,
+  };
 }

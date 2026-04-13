@@ -4,7 +4,7 @@
 
 ## 功能特性
 
-- 支持 5 种 GitHub 事件：Issues、Issue 评论、Pull Request、PR Review、Push
+- 支持 8 种 GitHub 事件：Discussion、Discussion Comment、Issues、Issue 评论、Pull Request、PR Review、Push、Workflow Run
 - 飞书互动卡片消息，不同事件类型有不同颜色标识
 - 多仓库监听，每个仓库可配置不同的订阅者和事件过滤
 - GitHub Webhook 签名验证（HMAC SHA-256）
@@ -15,11 +15,14 @@
 
 | GitHub 事件 | 触发动作 | 卡片颜色 |
 |---|---|---|
+| Discussion | answered / created / edited / deleted / labeled 等 | 🟢 绿 / 🔵 蓝 / ⚪ 灰 / 🟠 橙 |
+| Discussion Comment | created / edited / deleted | 🔵 蓝 / 🟡 黄 / ⚪ 灰 |
 | Issues | opened, closed, reopened | 🟢 绿 / 🟣 紫 / 🔵 蓝 |
 | Issue Comment | created | 🔵 蓝 |
-| Pull Request | opened, closed, merged, reopened | 🔵 蓝 / ⚪ 灰 / 🟣 紫 |
+| Pull Request | opened, edited, synchronize, closed, merged, reopened, ready_for_review, converted_to_draft | 🔵 蓝 / 🟡 黄 / ⚪ 灰 / 🟣 紫 / 🟢 绿 |
 | PR Review | submitted (approved / changes_requested / commented) | 🟢 绿 / 🔴 红 / 🟡 黄 |
 | Push | — | ⚪ 灰 |
+| Workflow Run | completed (success / failure / cancelled / timed_out / skipped 等) | 🟢 绿 / 🔴 红 / ⚪ 灰 / 🟠 橙 |
 
 ## 快速开始
 
@@ -101,9 +104,12 @@ npm start
    - **Which events**: 选择 **Let me select individual events**，勾选：
      - Issues
      - Issue comments
+     - Discussions
+     - Discussion comments
      - Pull requests
      - Pull request reviews
      - Pushes
+     - Workflow runs
 3. 点击 **Add webhook**
 
 GitHub 会发送一个 ping 事件来测试连接。如果看到绿色勾表示连接成功。
@@ -135,13 +141,19 @@ routes:
     events:                               # 可选：指定监听的事件类型
       - "issues"
       - "issue_comment"
+      - "discussion"
+      - "discussion_comment"
       - "pull_request"
       - "pull_request_review"
       - "push"
+      - "workflow_run"
+    branches:                             # 可选：仅对 push 事件生效
+      - "main"                            # 只通知 main 分支的 push
 
   - repo: "org/repo-b"
     subscribers: ["octocat"]
     # 不指定 events 则监听所有支持的事件
+    # 不指定 branches 则接收所有分支的 push
 ```
 
 ### 环境变量覆盖
