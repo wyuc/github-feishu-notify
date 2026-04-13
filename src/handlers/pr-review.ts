@@ -18,11 +18,21 @@ export function handlePrReview(payload: any): HandlerResult | null {
 
   const mentions = new Set<string>();
 
-  // PR author (they should be notified of the review)
+  // PR author
   if (pr.user?.login) mentions.add(pr.user.login);
 
   // Reviewer
   if (review.user?.login) mentions.add(review.user.login);
+
+  // PR assignees
+  for (const a of pr.assignees || []) {
+    if (a.login) mentions.add(a.login);
+  }
+
+  // Other requested reviewers
+  for (const r of pr.requested_reviewers || []) {
+    if (r.login) mentions.add(r.login);
+  }
 
   return {
     card: buildCard({
